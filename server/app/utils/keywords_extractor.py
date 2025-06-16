@@ -1,8 +1,5 @@
 import os
-from dotenv import load_dotenv
 import google.generativeai as genai
-
-load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
@@ -24,5 +21,5 @@ Narration: {text}
         keywords = [kw.strip()
                     for kw in keywords_text.split(",") if kw.strip()]
         return keywords
-    except Exception as e:
+    except Exception:
         return []
