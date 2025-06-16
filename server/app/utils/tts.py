@@ -1,9 +1,12 @@
-import os
 import re
 from num2words import num2words
 from g2p_id import G2P
 from TTS.api import TTS
-from app.utils.constant import TTS_MODEL_PATH, TTS_CONFIG_PATH, TTS_SPEAKERS_PATH
+from app.utils.constant import (
+    TTS_MODEL_PATH,
+    TTS_CONFIG_PATH,
+    TTS_SPEAKERS_PATH,
+)
 
 SYMBOL_MAP = {
     " + ": " plus ",

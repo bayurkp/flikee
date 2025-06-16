@@ -1,7 +1,13 @@
 import subprocess
 
 
-def _whisper(audio_path: str, output_path: str, model: str = "turbo", output_format: str = "srt", language: str = "id") -> str:
+def _whisper(
+    audio_path: str,
+    output_path: str,
+    model: str = "turbo",
+    output_format: str = "srt",
+    language: str = "id"
+) -> str:
     command = [
         "whisper",
         audio_path,
@@ -22,6 +28,6 @@ def _whisper(audio_path: str, output_path: str, model: str = "turbo", output_for
 
 
 def transcribe_speech(audio_path: str, output_path: str) -> str:
-    """Transcribes speech from an audio file using the OpenAI Whisper API."""
+    output_path = _whisper(audio_path, output_path)
 
-    _whisper(audio_path, output_path)
+    return output_path

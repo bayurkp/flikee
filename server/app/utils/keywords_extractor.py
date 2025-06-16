@@ -6,14 +6,21 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 
 def extract_keywords(text: str, max_keywords: int = 8) -> list[str]:
-    model = genai.GenerativeModel("models/gemini-1.5-flash")
+    model = genai.GenerativeModel(
+        "models/gemini-1.5-flash"
+    )
 
-    prompt = f"""
-You are a video content assistant. Your job is to extract up to {max_keywords} visually relevant keywords or phrases from the following video narration.
-The keywords should describe visual scenes, objects, locations, emotions, or atmosphere that would be useful for video generation or stock footage curation.
-Return the keywords in English, as a comma-separated list, with no explanations.
-Narration: {text}
-"""
+    prompt = (
+        f"You are a video content assistant. Your job is to extract up to "
+        f"{max_keywords} visually relevant keywords or phrases from the "
+        "following video narration.\n"
+        "The keywords should describe visual scenes, objects, locations, "
+        "emotions, or atmosphere that would be useful for video generation "
+        "or stock footage curation.\n"
+        "Return the keywords in English, as a comma-separated list, with no "
+        "explanations.\n"
+        f"Narration: {text}"
+    )
 
     try:
         response = model.generate_content(prompt)
