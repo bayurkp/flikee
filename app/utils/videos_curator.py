@@ -1,0 +1,140 @@
+import os
+import requests
+from typing import List, Optional
+from pydantic import BaseModel, HttpUrl
+from app.utils.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+
+class Video(BaseModel):
+    source: str
+    keyword: str
+    url: HttpUrl
+    duration: Optional[float]
+    width: Optional[float]
+    height: Optional[float]
+    thumbnail: Optional[HttpUrl]
+
+
+def _parse_video(
+    source: str,
+    keyword: str,
+    url: str,
+    duration: Optional[float],
+    width: Optional[float],
+    height: Optional[float],
+    thumbnail: Optional[str]
+) -> Optional[Video]:
+    try:
+        return Video(
+            source=source,
+            keyword=keyword,
+            url=url,
+            duration=duration,
+            width=width,
+            height=height,
+            thumbnail=thumbnail
+        )
+    except Exception as e:
+        logger.warning(f"[{source.capitalize()}] Skipping invalid video: {e}")
+        return None
+
+
+def _pixabay(query: str, limit: int = 5) -> List[Video]:
+    api_key = os.getenv("PIXABAY_API_KEY")
+    base_url = os.getenv("PIXABAY_BASE_URL")
+
+    params = {
+        "key": api_key,
+        "q": query,
+        "orientation": "horizontal",
+        "page": 1,
+        "per_page": limit,
+        "safesearch": "true"
+    }
+
+    try:
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        logger.info(
+            f"[Pixabay] {len(data.get('hits', []))} results for '{query}'")
+    except Exception as e:
+        logger.error(f"[Pixabay] Failed to fetch for '{query}': {e}")
+        return []
+
+    videos = []
+    for item in data.get("hits", []):
+        medium = item.get("videos", {}).get("medium")
+        if medium:
+            video = _parse_video(
+                source="pixabay",
+                keyword=query,
+                url=medium.get("url"),
+                duration=item.get("duration"),
+                width=medium.get("width"),
+                height=medium.get("height"),
+                thumbnail=medium.get("thumbnail")
+            )
+            if video:
+                videos.append(video)
+
+    return videos
+
+
+def _pexels(query: str, limit: int = 5) -> List[Video]:
+    api_key = os.getenv("PEXELS_API_KEY")
+    base_url = os.getenv("PEXELS_BASE_URL")
+
+    headers = {"Authorization": api_key}
+    params = {
+        "query": query,
+        "orientation": "horizontal",
+        "page": 1,
+        "per_page": limit
+    }
+
+    try:
+        response = requests.get(base_url + "search",
+                                headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        logger.info(
+            f"[Pexels] {len(data.get('videos', []))} results for '{query}'")
+    except Exception as e:
+        logger.error(f"[Pexels] Failed to fetch for '{query}': {e}")
+        return []
+
+    videos = []
+    for item in data.get("videos", []):
+        files = item.get("video_files", [])
+        if files:
+            video = _parse_video(
+                source="pexels",
+                keyword=query,
+                url=files[0].get("link"),
+                duration=item.get("duration"),
+                width=item.get("width"),
+                height=item.get("height"),
+                thumbnail=item.get("image")
+            )
+            if video:
+                videos.append(video)
+
+    return videos
+
+
+def curate_videos(
+    keywords: List[str],
+    limit_per_source: int = 5
+) -> List[Video]:
+    logger.info(f"Starting video curation for keywords: {keywords}")
+    videos = []
+
+    for query in keywords:
+        videos.extend(_pixabay(query, limit_per_source))
+        videos.extend(_pexels(query, limit_per_source))
+
+    logger.info(f"Total curated videos: {len(videos)}")
+    return videos
