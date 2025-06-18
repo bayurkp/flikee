@@ -1,8 +1,10 @@
 import os
+from urllib.parse import urlparse
 import requests
 from typing import List, Optional
 from pydantic import BaseModel, HttpUrl
 from app.utils.logger import setup_logger
+from app.utils.similarity_score import compute_similarity_score
 
 logger = setup_logger(__name__)
 
@@ -10,31 +12,37 @@ logger = setup_logger(__name__)
 class Video(BaseModel):
     source: str
     keyword: str
+    description: Optional[str]
     url: HttpUrl
     duration: Optional[float]
     width: Optional[float]
     height: Optional[float]
     thumbnail: Optional[HttpUrl]
+    similarity_score: Optional[float]
 
 
 def _parse_video(
     source: str,
     keyword: str,
+    description: Optional[str],
     url: str,
     duration: Optional[float],
     width: Optional[float],
     height: Optional[float],
-    thumbnail: Optional[str]
+    thumbnail: Optional[str],
+    similarity_score: Optional[float]
 ) -> Optional[Video]:
     try:
         return Video(
             source=source,
             keyword=keyword,
+            description=description,
             url=url,
             duration=duration,
             width=width,
             height=height,
-            thumbnail=thumbnail
+            thumbnail=thumbnail,
+            similarity_score=similarity_score
         )
     except Exception as e:
         logger.warning(f"[{source.capitalize()}] Skipping invalid video: {e}")
@@ -42,6 +50,9 @@ def _parse_video(
 
 
 def _pixabay(query: str, limit: int = 5) -> List[Video]:
+    def get_description(tags: str) -> str:
+        return tags.replace(",", "")
+
     api_key = os.getenv("PIXABAY_API_KEY")
     base_url = os.getenv("PIXABAY_BASE_URL")
 
@@ -67,15 +78,24 @@ def _pixabay(query: str, limit: int = 5) -> List[Video]:
     videos = []
     for item in data.get("hits", []):
         medium = item.get("videos", {}).get("medium")
+        tags = item.get("tags", "")
+        description = get_description(tags)
+        similarity_score = compute_similarity_score(
+            source_text=description,
+            reference_text=query
+        )
+
         if medium:
             video = _parse_video(
                 source="pixabay",
                 keyword=query,
+                description=description,
                 url=medium.get("url"),
                 duration=item.get("duration"),
                 width=medium.get("width"),
                 height=medium.get("height"),
-                thumbnail=medium.get("thumbnail")
+                thumbnail=medium.get("thumbnail"),
+                similarity_score=similarity_score
             )
             if video:
                 videos.append(video)
@@ -84,6 +104,12 @@ def _pixabay(query: str, limit: int = 5) -> List[Video]:
 
 
 def _pexels(query: str, limit: int = 5) -> List[Video]:
+    def get_description(url: str) -> str:
+        path = urlparse(url).path
+        slug = path.strip("/").split("/")[-1]
+        words = slug.split("-")[:-1]
+        return " ".join(words)
+
     api_key = os.getenv("PEXELS_API_KEY")
     base_url = os.getenv("PEXELS_BASE_URL")
 
@@ -109,15 +135,23 @@ def _pexels(query: str, limit: int = 5) -> List[Video]:
     videos = []
     for item in data.get("videos", []):
         files = item.get("video_files", [])
+        description = get_description(item.get("url"))
+        similarity_score = compute_similarity_score(
+            source_text=description,
+            reference_text=query
+        )
+
         if files:
             video = _parse_video(
                 source="pexels",
                 keyword=query,
+                description=description,
                 url=files[0].get("link"),
                 duration=item.get("duration"),
                 width=item.get("width"),
                 height=item.get("height"),
-                thumbnail=item.get("image")
+                thumbnail=item.get("image"),
+                similarity_score=similarity_score
             )
             if video:
                 videos.append(video)
@@ -135,6 +169,13 @@ def curate_videos(
     for query in keywords:
         videos.extend(_pixabay(query, limit_per_source))
         videos.extend(_pexels(query, limit_per_source))
+
+    videos.sort(
+        key=lambda v: (
+            -1 * (v.similarity_score or 0.0),  # similarity (desc)
+            v.duration or float("inf")         # duration (asc)
+        )
+    )
 
     logger.info(f"Total curated videos: {len(videos)}")
     return videos
