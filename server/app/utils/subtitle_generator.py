@@ -27,7 +27,7 @@ def _whisper(
     return output_path
 
 
-def transcribe_speech(audio_path: str, output_path: str) -> str:
+def generate_subtitle(audio_path: str, output_path: str) -> str:
     output_path = _whisper(audio_path, output_path)
 
     return output_path

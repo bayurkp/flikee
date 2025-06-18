@@ -38,7 +38,7 @@ def _coqui(text: str, output_path: str) -> str:
                     speaker=DEFAULT_SPEAKER)
 
 
-def generate_speech(text: str, output_path: str) -> str:
+def generate_voiceover(text: str, output_path: str) -> str:
     processed_text = _preprocess_text(text)
 
     _coqui(processed_text, output_path)
