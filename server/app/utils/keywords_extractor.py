@@ -5,7 +5,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 
-def extract_keywords(text: str, max_keywords: int = 8) -> list[str]:
+def extract_keywords(text: str, max_keywords: int = 3) -> list[str]:
     model = genai.GenerativeModel(
         "models/gemini-1.5-flash"
     )
@@ -25,7 +25,7 @@ def extract_keywords(text: str, max_keywords: int = 8) -> list[str]:
     try:
         response = model.generate_content(prompt)
         keywords_text = response.text.strip()
-        keywords = [kw.strip()
+        keywords = [kw.strip().lower()
                     for kw in keywords_text.split(",") if kw.strip()]
         return keywords
     except Exception:
