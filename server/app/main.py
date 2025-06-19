@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -18,6 +19,14 @@ load_dotenv(override=True)
 
 logger = setup_logger(__name__)
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
@@ -97,8 +106,8 @@ def generate_video(data: GenerateRequest, request: Request):
     }
 
 
-@app.post("/dummy")
-def generate_video(data: GenerateRequest, request: Request):
+@app.post("/generate-dummy")
+def generate_video_dummy(data: GenerateRequest, request: Request):
     return {
         "message": "Video successfully generated.",
         "execution_time": 101.94125,
