@@ -73,18 +73,7 @@ def generate_subtitle(
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     srt_path = output_dir_path / "subtitle.srt"
-    ass_path = output_dir_path / "subtitle.ass"
 
     _faster_whisper(voiceover_path, srt_path, text=text)
 
-    (
-        ffmpeg
-        .input(str(srt_path))
-        .output(str(ass_path))
-        .overwrite_output()
-        .run()
-    )
-
-    os.remove(srt_path)
-
-    return str(ass_path)
+    return str(srt_path)
