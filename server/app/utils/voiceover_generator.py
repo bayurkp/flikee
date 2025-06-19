@@ -1,4 +1,6 @@
+from pathlib import Path
 import re
+from pydub import AudioSegment
 from num2words import num2words
 from g2p_id import G2P
 from TTS.api import TTS
@@ -38,9 +40,14 @@ def _coqui(text: str, output_path: str) -> str:
                     speaker=DEFAULT_SPEAKER)
 
 
-def generate_voiceover(text: str, output_path: str) -> str:
+def generate_voiceover(text: str, output_dir: str) -> tuple[str, float]:
     processed_text = _preprocess_text(text)
+    output_dir_path = Path(output_dir)
+    output_path = output_dir_path / "voiceover.wav"
 
     _coqui(processed_text, output_path)
 
-    return output_path
+    audio = AudioSegment.from_file(output_path)
+    duration = len(audio) / 1000  # in seconds
+
+    return str(output_path), duration
