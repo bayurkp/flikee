@@ -2,23 +2,11 @@ import os
 from urllib.parse import urlparse
 import requests
 from typing import List, Optional
-from pydantic import BaseModel, HttpUrl
+from app.models.video import Video
 from app.utils.logger import setup_logger
 from app.utils.similarity_score import compute_similarity_score
 
 logger = setup_logger(__name__)
-
-
-class Video(BaseModel):
-    source: str
-    keyword: str
-    description: Optional[str]
-    url: HttpUrl
-    duration: Optional[float]
-    width: Optional[float]
-    height: Optional[float]
-    thumbnail: Optional[HttpUrl]
-    similarity_score: Optional[float]
 
 
 def _parse_video(
